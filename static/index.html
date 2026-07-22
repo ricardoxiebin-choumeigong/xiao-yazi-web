@@ -136,10 +136,11 @@
     .drop-content { display: grid; justify-items: center; gap: 14px; pointer-events: none; }
     .drop-visual {
       display: block;
-      width: min(100%, 300px);
+      width: min(100%, 176px);
       height: auto;
       margin-bottom: 4px;
     }
+    .drop-title { font-size: 19px; font-weight: 600; }
     .picker-actions { justify-content: center; margin-top: 30px; }
     .split-picker { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 500px); }
     .btn {
@@ -282,6 +283,8 @@
       <button class="dropzone" id="dropzone" type="button" aria-label="选择或拖入文件和文件夹">
         <span class="drop-content">
           <img class="drop-visual" src="/static/vendor/upload-visual.png" alt="" aria-hidden="true">
+          <span class="drop-title">把文件或文件夹拖到这里</span>
+          <span class="muted">也可以粘贴剪贴板中的图片</span>
         </span>
       </button>
 
