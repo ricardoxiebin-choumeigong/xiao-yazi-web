@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小压子｜图片与参数整理</title>
+  <script src="/static/vendor/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060712;
+      --panel: #121321;
+      --panel-2: #0d0e18;
+      --field: #181926;
+      --text: #f4f2f8;
+      --muted: #9895a3;
+      --line: #353248;
+      --primary: #6c63f5;
+      --primary-hover: #7a72ff;
+      --danger: #fb7185;
+      --success: #6ee7b7;
+      --warning: #fbbf24;
+      --focus: #aaa1ff;
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: #f3f3f5; }
+    body {
+      margin: 0;
+      padding: 20px;
+      color: var(--text);
+      background: #f3f3f5;
+      font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+    button, input { font: inherit; letter-spacing: 0; }
+    button { color: inherit; }
+    .app {
+      width: min(100%, 1100px);
+      margin: 0 auto;
+      padding: 28px;
+      background: var(--bg);
+      border: 1px solid #191a29;
+    }
+    .header,
+    .brand,
+    .brand-copy,
+    .setting-head,
+    .picker-actions,
+    .queue-head,
+    .file-main,
+    .file-meta,
+    .run-row,
+    .summary-line,
+    .summary-actions,
+    .code-head,
+    .code-report-head {
+      display: flex;
+      align-items: center;
+    }
+    .header,
+    .setting-head,
+    .queue-head,
+    .run-row,
+    .code-head,
+    .code-report-head {
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .header { min-height: 66px; padding: 0 10px 18px; }
+    .brand { gap: 14px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+      color: #fff;
+      background: #5b66f6;
+      border: 1px solid #8790ff;
+      border-radius: 8px;
+      box-shadow: 0 0 18px rgba(91, 102, 246, 0.45);
+    }
+    .brand-mark svg { width: 26px; height: 26px; }
+    .brand-copy { gap: 14px; min-width: 0; }
+    .brand-name { font-size: 27px; font-weight: 700; white-space: nowrap; }
+    .brand-subtitle, .version, .muted { color: var(--muted); }
+    .version { font-size: 14px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid #1b1c2b;
+      border-radius: 8px;
+    }
+    .workbench { padding: 32px; }
+    .setting-head { font-weight: 600; }
+    .target-control { display: flex; align-items: center; gap: 10px; }
+    .target-number {
+      width: 94px;
+      height: 50px;
+      padding: 0 12px;
+      color: var(--text);
+      text-align: center;
+      background: var(--field);
+      border: 1px solid #4a4564;
+      border-radius: 8px;
+      outline: none;
+    }
+    .target-number:focus { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(170, 161, 255, 0.18); }
+    .target-slider { width: 100%; margin: 24px 0 10px; accent-color: var(--primary); }
+    .target-scale { display: grid; grid-template-columns: 1fr auto 1fr; color: var(--muted); font-size: 14px; }
+    .target-scale span:last-child { text-align: right; }
+    .dropzone {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-height: 380px;
+      margin-top: 26px;
+      padding: 34px;
+      color: var(--text);
+      text-align: center;
+      background: rgba(24, 25, 38, 0.72);
+      border: 2px dashed #777486;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .dropzone:hover, .dropzone.is-over { border-color: var(--primary); background: #1b1a2d; }
+    .drop-content { display: grid; justify-items: center; gap: 14px; pointer-events: none; }
+    .drop-art {
+      display: grid;
+      place-items: center;
+      width: 84px;
+      height: 68px;
+      margin-bottom: 18px;
+      color: #fff;
+      background: var(--primary);
+      border: 1px solid #948dff;
+      border-radius: 8px;
+      box-shadow: -17px -11px 0 #4b38be;
+      transform: rotate(4deg);
+    }
+    .drop-art svg { width: 36px; height: 36px; transform: rotate(-4deg); }
+    .drop-title { font-size: 19px; font-weight: 600; }
+    .picker-actions { justify-content: center; margin-top: 30px; }
+    .split-picker { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 500px); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 18px;
+      color: var(--text);
+      background: #1a1a28;
+      border: 1px solid #3b3753;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn:hover:not(:disabled) { background: #242336; }
+    .btn:focus-visible { outline: 3px solid rgba(170, 161, 255, 0.45); outline-offset: 2px; }
+    .btn:disabled { color: #666474; cursor: not-allowed; }
+    .btn-primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .split-picker .btn { min-height: 58px; border-radius: 0; }
+    .split-picker .btn:first-child { border-radius: 8px 0 0 8px; }
+    .split-picker .btn:last-child { border-left-color: rgba(255,255,255,0.24); border-radius: 0 8px 8px 0; }
+    .paste-hint { margin-top: 14px; color: var(--muted); text-align: center; font-size: 14px; }
+    kbd { padding: 2px 6px; color: var(--text); background: #1c1c2a; border: 1px solid #3b3753; border-radius: 4px; }
+    .queue { margin-top: 18px; padding: 22px; }
+    .queue-title { font-weight: 600; }
+    .btn-ghost { min-height: 36px; padding: 0 10px; color: var(--muted); background: transparent; border-color: transparent; }
+    .queue-list { margin-top: 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .empty {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      padding: 34px 16px;
+      color: var(--muted);
+    }
+    .empty svg { width: 34px; height: 34px; }
+    .file-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(130px, auto);
+      align-items: center;
+      gap: 14px;
+      min-height: 58px;
+      border-bottom: 1px solid var(--line);
+    }
+    .file-row:last-child { border-bottom: 0; }
+    .file-main { gap: 10px; min-width: 0; }
+    .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-meta { gap: 10px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+    .file-status { text-align: right; font-size: 14px; }
+    .status-ok { color: var(--success); }
+    .status-error { color: var(--danger); }
+    .status-working { color: var(--warning); }
+    .progress-track { height: 5px; margin: 18px 0; overflow: hidden; background: #1c1d2b; border-radius: 3px; }
+    .progress-fill { width: 0; height: 100%; background: var(--primary); transition: width 180ms ease; }
+    .run-row { padding: 20px 22px; }
+    .run-hint { color: var(--muted); font-size: 14px; }
+    .run-action { min-width: 220px; min-height: 54px; }
+    .results { display: none; margin-top: 18px; }
+    .results.is-visible { display: grid; gap: 18px; }
+    .summary-line { flex-wrap: wrap; gap: 14px; padding: 0 4px; }
+    .summary-actions { justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .save-action { min-width: 220px; }
+    .code-results { padding: 0 18px; }
+    .code-head { min-height: 66px; border-bottom: 1px solid var(--line); }
+    .code-list { display: grid; }
+    .code-report { padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .code-report:last-child { border-bottom: 0; }
+    .code-report-head { margin-bottom: 12px; }
+    .code-name { overflow-wrap: anywhere; }
+    .code-output, .error-list {
+      margin: 0;
+      padding: 16px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      color: #ece9f2;
+      background: #171724;
+      border: 1px solid #3d3952;
+      border-radius: 8px;
+      font-family: Consolas, monospace;
+      font-size: 14px;
+    }
+    .error-list { color: #fecdd3; }
+    .copy-button { flex: 0 0 auto; }
+    .hidden-input { display: none; }
+    .toast {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      color: var(--text);
+      background: #191927;
+      border-left: 3px solid var(--primary);
+      border-radius: 4px;
+    }
+    .toast.is-visible { display: block; }
+    .toast.is-error { border-left-color: var(--danger); }
+    @media (max-width: 720px) {
+      body { padding: 0; background: var(--bg); }
+      .app { padding: 18px 12px; border: 0; }
+      .header { align-items: flex-start; padding-inline: 4px; }
+      .brand-copy { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .brand-name { font-size: 22px; }
+      .workbench { padding: 22px 16px; }
+      .setting-head { align-items: flex-start; flex-direction: column; }
+      .dropzone { min-height: 260px; padding: 24px 12px; }
+      .file-row { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 0; }
+      .file-status { grid-column: 1 / -1; text-align: left; }
+      .run-row { align-items: stretch; flex-direction: column; }
+      .run-action, .save-action { width: 100%; }
+    }
+    @media (max-width: 440px) {
+      .brand-subtitle, .version { display: none; }
+      .split-picker { grid-template-columns: 1fr; gap: 8px; }
+      .split-picker .btn, .split-picker .btn:first-child, .split-picker .btn:last-child { border: 1px solid var(--primary); border-radius: 8px; }
+      .target-control { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div class="brand">
+        <span class="brand-mark"><i data-lucide="package-open" aria-hidden="true"></i></span>
+        <div class="brand-copy">
+          <span class="brand-name">小压子</span>
+          <span class="brand-subtitle">图片与参数整理</span>
+        </div>
+      </div>
+      <span class="version">v1.0</span>
+    </header>
+
+    <section class="card workbench" aria-label="图片压缩设置">
+      <div class="setting-head">
+        <span>目标文件大小</span>
+        <label class="target-control" for="target-number">
+          <span>原文件的</span>
+          <input class="target-number" id="target-number" type="number" min="0" max="100" step="1" value="65">
+          <span>%</span>
+        </label>
+      </div>
+      <input class="target-slider" id="target-slider" type="range" min="0" max="100" step="5" value="65" aria-label="目标文件大小百分比">
+      <div class="target-scale"><span>0%</span><span>清晰优先</span><span>100%</span></div>
+
+      <button class="dropzone" id="dropzone" type="button" aria-label="选择或拖入文件和文件夹">
+        <span class="drop-content">
+          <span class="drop-art"><i data-lucide="upload" aria-hidden="true"></i></span>
+          <span class="drop-title">把文件或文件夹拖到这里</span>
+          <span class="muted">也可以粘贴剪贴板中的图片</span>
+        </span>
+      </button>
+
+      <div class="picker-actions">
+        <div class="split-picker" role="group" aria-label="选择文件或文件夹">
+          <button class="btn btn-primary" id="choose-files" type="button"><i data-lucide="files" aria-hidden="true"></i><span id="choose-files-label">选择文件</span></button>
+          <button class="btn btn-primary" id="choose-folder" type="button"><i data-lucide="folder-open" aria-hidden="true"></i><span id="choose-folder-label">选择文件夹</span></button>
+        </div>
+      </div>
+      <div class="paste-hint"><kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 · PNG / JPG / WebP / BMP / GIF / TXT</div>
+    </section>
+
+    <input class="hidden-input" id="file-input" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.txt">
+    <input class="hidden-input" id="folder-input" type="file" multiple webkitdirectory directory>
+
+    <section class="card queue" aria-label="待处理文件">
+      <div class="queue-head">
+        <span class="queue-title" id="queue-title">待处理</span>
+        <button class="btn btn-ghost" id="clear-all" type="button" disabled><i data-lucide="trash-2" aria-hidden="true"></i>清空</button>
+      </div>
+      <div class="queue-list" id="queue-list">
+        <div class="empty"><i data-lucide="inbox" aria-hidden="true"></i><span>尚未添加文件</span></div>
+      </div>
+    </section>
+
+    <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+
+    <section class="card run-row">
+      <span class="run-hint" id="run-hint" role="status" aria-live="polite">所有处理均在当前设备完成</span>
+      <button class="btn btn-primary run-action" id="run" type="button" disabled><i data-lucide="wand-sparkles" aria-hidden="true"></i>开始处理</button>
+    </section>
+
+    <section class="results" id="results" aria-live="polite">
+      <div class="summary-line">
+        <strong id="summary-size"></strong>
+        <span class="muted" id="summary-txt"></span>
+      </div>
+      <div class="summary-actions">
+        <button class="btn save-action" id="save-all" type="button"><i data-lucide="folder-down" aria-hidden="true"></i>保存到指定文件夹</button>
+        <button class="btn save-action" id="download-zip" type="button"><i data-lucide="archive" aria-hidden="true"></i>下载 ZIP</button>
+      </div>
+      <section class="card code-results" id="code-results">
+        <div class="code-head">
+          <span><i data-lucide="braces" aria-hidden="true"></i>代码检查结果</span>
+          <span class="muted" id="code-count"></span>
+        </div>
+        <div class="code-list" id="code-list"></div>
+      </section>
+    </section>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    (() => {
+      const supported = /\.(png|jpe?g|webp|bmp|gif|txt)$/i;
+      const state = { files: new Map(), running: false, report: null };
+      const $ = (selector) => document.querySelector(selector);
+      const dropzone = $('#dropzone');
+      const fileInput = $('#file-input');
+      const folderInput = $('#folder-input');
+      const queueList = $('#queue-list');
+      const runButton = $('#run');
+      const clearButton = $('#clear-all');
+      const targetSlider = $('#target-slider');
+      const targetNumber = $('#target-number');
+      const progressFill = $('#progress-fill');
+      const results = $('#results');
+      const saveAll = $('#save-all');
+      const downloadZip = $('#download-zip');
+      const toast = $('#toast');
+
+      const formatBytes = (bytes) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / 1048576).toFixed(2)} MB`;
+      };
+
+      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+
+      const refreshIcons = () => window.lucide?.createIcons({ attrs: { width: 18, height: 18, 'stroke-width': 1.8 } });
+
+      const showToast = (message, error = false) => {
+        toast.textContent = message;
+        toast.classList.toggle('is-error', error);
+        toast.classList.add('is-visible');
+      };
+
+      const clearToast = () => toast.classList.remove('is-visible', 'is-error');
+
+      const keyFor = (file, path) => `${path}|${file.size}|${file.lastModified}`;
+
+      function normalizePath(file, explicitPath, stripRoot) {
+        let path = (explicitPath || file.webkitRelativePath || file.name).replace(/\\/g, '/');
+        if (stripRoot && path.includes('/')) path = path.split('/').slice(1).join('/');
+        return path || file.name;
+      }
+
+      function addFiles(items, { replace = false, stripRoot = false } = {}) {
+        if (replace) state.files.clear();
+        for (const item of items) {
+          const file = item.file || item;
+          if (!file || !supported.test(file.name)) continue;
+          const path = normalizePath(file, item.path, stripRoot);
+          state.files.set(keyFor(file, path), { file, path, status: '等待处理', tone: '' });
+        }
+        state.report = null;
+        results.classList.remove('is-visible');
+        progressFill.style.width = '0%';
+        clearToast();
+        renderQueue();
+      }
+
+      function renderQueue() {
+        const items = [...state.files.values()];
+        $('#queue-title').textContent = items.length ? `待处理 · ${items.length} 个文件` : '待处理';
+        $('#choose-files-label').textContent = items.length ? '重新选择文件' : '选择文件';
+        $('#choose-folder-label').textContent = items.length ? '重新选择文件夹' : '选择文件夹';
+        runButton.disabled = !items.length || state.running;
+        clearButton.disabled = !items.length || state.running;
+        if (!items.length) {
+          queueList.innerHTML = '<div class="empty"><i data-lucide="inbox" aria-hidden="true"></i><span>尚未添加文件</span></div>';
+          refreshIcons();
+          return;
+        }
+        queueList.innerHTML = items.map((item) => {
+          const ext = (item.file.name.split('.').pop() || '').toUpperCase();
+          const icon = ext === 'TXT' ? 'braces' : 'image';
+          return `<div class="file-row">
+            <div class="file-main"><i data-lucide="${icon}" aria-hidden="true"></i><span class="file-name">${escapeHtml(item.path)}</span></div>
+            <span class="file-meta"><span>${ext}</span><span>${formatBytes(item.file.size)}</span></span>
+            <span class="file-status ${item.tone}">${escapeHtml(item.status)}</span>
+          </div>`;
+        }).join('');
+        refreshIcons();
+      }
+
+      function setStatus(path, status, tone = '') {
+        const match = [...state.files.values()].find((item) => item.path === path || item.path.endsWith(`/${path}`));
+        if (match) {
+          match.status = status;
+          match.tone = tone;
+        }
+      }
+
+      async function readEntry(entry, prefix = '') {
+        if (entry.isFile) {
+          return new Promise((resolve) => entry.file((file) => resolve([{ file, path: `${prefix}${file.name}` }]), () => resolve([])));
+        }
+        if (!entry.isDirectory) return [];
+        const reader = entry.createReader();
+        const children = [];
+        while (true) {
+          const batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
+          if (!batch.length) break;
+          children.push(...batch);
+        }
+        const nested = await Promise.all(children.map((child) => readEntry(child, `${prefix}${entry.name}/`)));
+        return nested.flat();
+      }
+
+      async function filesFromDrop(dataTransfer) {
+        const entries = [...(dataTransfer.items || [])]
+          .map((item) => item.webkitGetAsEntry?.())
+          .filter(Boolean);
+        if (!entries.length) return { files: [...dataTransfer.files], stripRoot: false };
+        const files = (await Promise.all(entries.map((entry) => readEntry(entry)))).flat();
+        const stripRoot = entries.length === 1 && entries[0].isDirectory;
+        return { files, stripRoot };
+      }
+
+      function resetSelection() {
+        state.files.clear();
+        state.report = null;
+        state.running = false;
+        results.classList.remove('is-visible');
+        progressFill.style.width = '0%';
+        $('#run-hint').textContent = '所有处理均在当前设备完成';
+        clearToast();
+        renderQueue();
+      }
+
+      async function runProcessing() {
+        if (state.running || !state.files.size) return;
+        state.running = true;
+        clearToast();
+        results.classList.remove('is-visible');
+        progressFill.style.width = '12%';
+        $('#run-hint').textContent = '正在上传到本机处理服务…';
+        for (const item of state.files.values()) {
+          item.status = '处理中…';
+          item.tone = 'status-working';
+        }
+        renderQueue();
+
+        const data = new FormData();
+        for (const item of state.files.values()) {
+          data.append('files', item.file, item.file.name);
+          data.append('paths', item.path);
+        }
+        data.append('target_percent', targetSlider.value);
+        data.append('mode', 'all');
+
+        try {
+          progressFill.style.width = '38%';
+          $('#run-hint').textContent = '正在压缩图片并检查 TXT…';
+          const response = await fetch('/api/process', { method: 'POST', body: data });
+          const report = await response.json();
+          if (!response.ok || report.error) throw new Error(report.error || '处理失败');
+          state.report = report;
+          progressFill.style.width = '100%';
+          applyReport(report);
+          $('#run-hint').textContent = report.failed ? '处理完成，部分文件需要检查' : '处理完成';
+        } catch (error) {
+          for (const item of state.files.values()) {
+            item.status = '处理失败';
+            item.tone = 'status-error';
+          }
+          renderQueue();
+          progressFill.style.width = '0%';
+          $('#run-hint').textContent = '处理失败';
+          showToast(error.message || '处理失败', true);
+        } finally {
+          state.running = false;
+          runButton.disabled = false;
+          clearButton.disabled = false;
+        }
+      }
+
+      function applyReport(report) {
+        for (const image of report.images) {
+          const detail = image.status === 'failed'
+            ? (image.detail || '处理失败')
+            : image.status === 'kept-original'
+              ? '已保留原图副本'
+              : `实际 ${image.actual_percent}%`;
+          setStatus(image.relative_source, detail, image.status === 'failed' ? 'status-error' : 'status-ok');
+        }
+        for (const text of report.texts) {
+          setStatus(text.relative_source, text.ok ? '检查通过 · 可复制压缩代码' : `${text.errors.length} 个问题`, text.ok ? 'status-ok' : 'status-error');
+        }
+        renderQueue();
+
+        const imageOk = report.images.filter((item) => item.download_url);
+        const before = imageOk.reduce((sum, item) => sum + item.original_bytes, 0);
+        const after = imageOk.reduce((sum, item) => sum + item.output_bytes, 0);
+        const textOk = report.texts.filter((item) => item.ok).length;
+        const textErrors = report.texts.length - textOk;
+        $('#summary-size').textContent = imageOk.length ? `图片 ${formatBytes(before)} → ${formatBytes(after)}` : '没有图片输出';
+        $('#summary-txt').textContent = `TXT 通过 ${textOk}${textErrors ? ` · 错误 ${textErrors}` : ''}`;
+        saveAll.style.display = imageOk.length ? '' : 'none';
+        downloadZip.style.display = imageOk.length ? '' : 'none';
+        renderCodeResults(report.texts);
+        results.classList.add('is-visible');
+        refreshIcons();
+      }
+
+      function renderCodeResults(texts) {
+        const container = $('#code-results');
+        const list = $('#code-list');
+        if (!texts.length) {
+          container.style.display = 'none';
+          list.innerHTML = '';
+          return;
+        }
+        container.style.display = '';
+        const passed = texts.filter((item) => item.ok).length;
+        $('#code-count').textContent = `${passed} 通过 · ${texts.length - passed} 错误`;
+        list.innerHTML = texts.map((item, index) => {
+          const body = item.ok
+            ? `<pre class="code-output"><code>${escapeHtml(item.compact)}</code></pre>`
+            : `<div class="error-list">${item.errors.map((error) => escapeHtml(error)).join('\n')}</div>`;
+          const copy = item.ok
+            ? `<button class="btn btn-ghost copy-button" type="button" data-copy="${index}" aria-label="复制压缩代码"><i data-lucide="copy" aria-hidden="true"></i>复制</button>`
+            : '';
+          return `<article class="code-report">
+            <div class="code-report-head"><span class="code-name">${escapeHtml(item.relative_source)}</span><span>${item.ok ? '已压缩 · 可复制' : `${item.errors.length} 个问题`}</span>${copy}</div>
+            ${body}
+          </article>`;
+        }).join('');
+      }
+
+      async function uniqueName(directory, name) {
+        const dot = name.lastIndexOf('.');
+        const stem = dot > 0 ? name.slice(0, dot) : name;
+        const suffix = dot > 0 ? name.slice(dot) : '';
+        let candidate = name;
+        let counter = 2;
+        while (true) {
+          try {
+            await directory.getFileHandle(candidate);
+            candidate = `${stem}-${counter}${suffix}`;
+            counter += 1;
+          } catch (error) {
+            if (error.name === 'NotFoundError') return candidate;
+            throw error;
+          }
+        }
+      }
+
+      const crcTable = (() => {
+        const table = new Uint32Array(256);
+        for (let index = 0; index < 256; index++) {
+          let value = index;
+          for (let bit = 0; bit < 8; bit++) value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+          table[index] = value >>> 0;
+        }
+        return table;
+      })();
+
+      function crc32(bytes) {
+        let value = 0xffffffff;
+        for (const byte of bytes) value = crcTable[(value ^ byte) & 0xff] ^ (value >>> 8);
+        return (value ^ 0xffffffff) >>> 0;
+      }
+
+      function zipDateTime(date = new Date()) {
+        const year = Math.max(1980, date.getFullYear());
+        const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+        const day = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+        return { time, day };
+      }
+
+      function write16(view, offset, value) { view.setUint16(offset, value, true); }
+      function write32(view, offset, value) { view.setUint32(offset, value >>> 0, true); }
+
+      async function makeZip(entries) {
+        const encoder = new TextEncoder();
+        const localParts = [];
+        const centralParts = [];
+        let localOffset = 0;
+        const stamp = zipDateTime();
+
+        for (const entry of entries) {
+          const name = encoder.encode(entry.name.replace(/\\/g, '/'));
+          const data = entry.data;
+          const checksum = crc32(data);
+          const local = new Uint8Array(30 + name.length);
+          const localView = new DataView(local.buffer);
+          write32(localView, 0, 0x04034b50);
+          write16(localView, 4, 20);
+          write16(localView, 6, 0x0800);
+          write16(localView, 8, 0);
+          write16(localView, 10, stamp.time);
+          write16(localView, 12, stamp.day);
+          write32(localView, 14, checksum);
+          write32(localView, 18, data.length);
+          write32(localView, 22, data.length);
+          write16(localView, 26, name.length);
+          write16(localView, 28, 0);
+          local.set(name, 30);
+          localParts.push(local, data);
+
+          const central = new Uint8Array(46 + name.length);
+          const centralView = new DataView(central.buffer);
+          write32(centralView, 0, 0x02014b50);
+          write16(centralView, 4, 20);
+          write16(centralView, 6, 20);
+          write16(centralView, 8, 0x0800);
+          write16(centralView, 10, 0);
+          write16(centralView, 12, stamp.time);
+          write16(centralView, 14, stamp.day);
+          write32(centralView, 16, checksum);
+          write32(centralView, 20, data.length);
+          write32(centralView, 24, data.length);
+          write16(centralView, 28, name.length);
+          write16(centralView, 30, 0);
+          write16(centralView, 32, 0);
+          write16(centralView, 34, 0);
+          write16(centralView, 36, 0);
+          write32(centralView, 38, 0);
+          write32(centralView, 42, localOffset);
+          central.set(name, 46);
+          centralParts.push(central);
+          localOffset += local.length + data.length;
+        }
+
+        const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+        const end = new Uint8Array(22);
+        const endView = new DataView(end.buffer);
+        write32(endView, 0, 0x06054b50);
+        write16(endView, 4, 0);
+        write16(endView, 6, 0);
+        write16(endView, 8, entries.length);
+        write16(endView, 10, entries.length);
+        write32(endView, 12, centralSize);
+        write32(endView, 16, localOffset);
+        write16(endView, 20, 0);
+        return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+      }
+
+      async function downloadZipResults() {
+        const downloadable = (state.report?.images || []).filter((item) => item.download_url);
+        if (!downloadable.length) return;
+        downloadZip.disabled = true;
+        clearToast();
+        try {
+          const entries = [];
+          for (let index = 0; index < downloadable.length; index++) {
+            const item = downloadable[index];
+            showToast(`正在打包 ${index + 1} / ${downloadable.length}`);
+            const response = await fetch(item.download_url);
+            if (!response.ok) throw new Error(`读取结果失败: ${item.relative_output}`);
+            entries.push({ name: item.relative_output, data: new Uint8Array(await response.arrayBuffer()) });
+          }
+          const blob = await makeZip(entries);
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = '小压子-处理结果.zip';
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          showToast(`已打包全部 ${entries.length} 张图片。`);
+        } catch (error) {
+          showToast(error.message || 'ZIP 打包失败', true);
+        } finally {
+          downloadZip.disabled = false;
+        }
+      }
+
+      async function saveResults() {
+        const downloadable = (state.report?.images || []).filter((item) => item.download_url);
+        if (!downloadable.length) return;
+        if (typeof window.showDirectoryPicker !== 'function') {
+          showToast('当前浏览器不支持保存到文件夹，请点击“下载 ZIP”。', true);
+          return;
+        }
+        saveAll.disabled = true;
+        clearToast();
+        try {
+          const rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          let saved = 0;
+          for (const item of downloadable) {
+            const parts = item.relative_output.split('/').filter(Boolean);
+            if (!parts.length) continue;
+            let directory = rootHandle;
+            for (const part of parts.slice(0, -1)) {
+              directory = await directory.getDirectoryHandle(part, { create: true });
+            }
+            const name = await uniqueName(directory, parts[parts.length - 1]);
+            const response = await fetch(item.download_url);
+            if (!response.ok) throw new Error(`读取结果失败: ${item.relative_output}`);
+            const blob = await response.blob();
+            const fileHandle = await directory.getFileHandle(name, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            saved += 1;
+            showToast(`正在保存 ${saved} / ${downloadable.length}`);
+          }
+          showToast(`已保存全部 ${saved} 张图片，未覆盖任何已有文件。`);
+        } catch (error) {
+          if (error.name !== 'AbortError') showToast(error.message || '保存失败', true);
+        } finally {
+          saveAll.disabled = false;
+        }
+      }
+
+      targetSlider.addEventListener('input', () => { targetNumber.value = targetSlider.value; });
+      targetNumber.addEventListener('input', () => {
+        if (targetNumber.value === '') return;
+        const value = Number(targetNumber.value);
+        if (Number.isFinite(value)) targetSlider.value = String(Math.max(0, Math.min(100, value)));
+      });
+      targetNumber.addEventListener('change', () => {
+        const value = Number(targetNumber.value);
+        const next = Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 65;
+        targetNumber.value = String(next);
+        targetSlider.value = String(next);
+      });
+      $('#choose-files').addEventListener('click', () => fileInput.click());
+      $('#choose-folder').addEventListener('click', () => folderInput.click());
+      dropzone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        addFiles([...fileInput.files], { replace: true });
+        fileInput.value = '';
+      });
+      folderInput.addEventListener('change', () => {
+        addFiles([...folderInput.files], { replace: true, stripRoot: true });
+        folderInput.value = '';
+      });
+      for (const eventName of ['dragenter', 'dragover']) {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.add('is-over');
+        });
+      }
+      for (const eventName of ['dragleave', 'drop']) {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.remove('is-over');
+        });
+      }
+      dropzone.addEventListener('drop', async (event) => {
+        const dropped = await filesFromDrop(event.dataTransfer);
+        addFiles(dropped.files, { replace: true, stripRoot: dropped.stripRoot });
+      });
+      document.addEventListener('paste', (event) => {
+        const files = [...(event.clipboardData?.files || [])];
+        if (files.length) {
+          event.preventDefault();
+          addFiles(files, { replace: false });
+        }
+      });
+      clearButton.addEventListener('click', resetSelection);
+      runButton.addEventListener('click', runProcessing);
+      saveAll.addEventListener('click', saveResults);
+      downloadZip.addEventListener('click', downloadZipResults);
+      $('#code-list').addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-copy]');
+        if (!button || !state.report) return;
+        const text = state.report.texts[Number(button.dataset.copy)]?.compact;
+        if (!text) return;
+        await navigator.clipboard.writeText(text);
+        showToast('压缩代码已复制。');
+      });
+
+      refreshIcons();
+      renderQueue();
+    })();
+  </script>
+</body>
+</html>
