@@ -23,12 +23,18 @@
       --focus: #aaa1ff;
     }
     * { box-sizing: border-box; }
-    html { min-width: 320px; background: #f3f3f5; }
+    html {
+      min-width: 320px;
+      min-height: 100%;
+      background: var(--bg);
+    }
     body {
+      min-height: 100vh;
+      min-height: 100dvh;
       margin: 0;
-      padding: 20px;
+      padding: 0;
       color: var(--text);
-      background: #f3f3f5;
+      background: var(--bg);
       font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
       font-size: 16px;
       letter-spacing: 0;
@@ -36,11 +42,13 @@
     button, input { font: inherit; letter-spacing: 0; }
     button { color: inherit; }
     .app {
-      width: min(100%, 1100px);
-      margin: 0 auto;
-      padding: 28px;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      padding: clamp(18px, 2.2vw, 40px);
       background: var(--bg);
-      border: 1px solid #191a29;
+      border: 0;
     }
     .header,
     .brand,
@@ -237,8 +245,7 @@
     .toast.is-visible { display: block; }
     .toast.is-error { border-left-color: var(--danger); }
     @media (max-width: 720px) {
-      body { padding: 0; background: var(--bg); }
-      .app { padding: 18px 12px; border: 0; }
+      .app { padding: 18px 12px; }
       .header { align-items: flex-start; padding-inline: 4px; }
       .brand-copy { align-items: flex-start; flex-direction: column; gap: 2px; }
       .brand-name { font-size: 22px; }
