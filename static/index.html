@@ -140,7 +140,6 @@
       height: auto;
       margin-bottom: 4px;
     }
-    .drop-title { font-size: 19px; font-weight: 600; }
     .picker-actions { justify-content: center; margin-top: 30px; }
     .split-picker { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 500px); }
     .btn {
@@ -273,18 +272,16 @@
         <span>目标文件大小</span>
         <label class="target-control" for="target-number">
           <span>原文件的</span>
-          <input class="target-number" id="target-number" type="number" min="0" max="100" step="1" value="65">
+          <input class="target-number" id="target-number" type="number" min="0" max="100" step="1" value="80">
           <span>%</span>
         </label>
       </div>
-      <input class="target-slider" id="target-slider" type="range" min="0" max="100" step="5" value="65" aria-label="目标文件大小百分比">
+      <input class="target-slider" id="target-slider" type="range" min="0" max="100" step="5" value="80" aria-label="目标文件大小百分比">
       <div class="target-scale"><span>0%</span><span>清晰优先</span><span>100%</span></div>
 
       <button class="dropzone" id="dropzone" type="button" aria-label="选择或拖入文件和文件夹">
         <span class="drop-content">
           <img class="drop-visual" src="/static/vendor/upload-visual.png" alt="" aria-hidden="true">
-          <span class="drop-title">把文件或文件夹拖到这里</span>
-          <span class="muted">也可以粘贴剪贴板中的图片</span>
         </span>
       </button>
 
