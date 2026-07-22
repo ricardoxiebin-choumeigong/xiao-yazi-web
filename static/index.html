@@ -8,6 +8,7 @@
   <style>
     :root {
       color-scheme: dark;
+      --page: #0b0918;
       --bg: #060712;
       --panel: #121321;
       --panel-2: #0d0e18;
@@ -26,15 +27,15 @@
     html {
       min-width: 320px;
       min-height: 100%;
-      background: var(--bg);
+      background: var(--page);
     }
     body {
       min-height: 100vh;
       min-height: 100dvh;
       margin: 0;
-      padding: 0;
+      padding: 20px;
       color: var(--text);
-      background: var(--bg);
+      background: var(--page);
       font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
       font-size: 16px;
       letter-spacing: 0;
@@ -42,11 +43,11 @@
     button, input { font: inherit; letter-spacing: 0; }
     button { color: inherit; }
     .app {
-      width: 100%;
-      min-height: 100vh;
-      min-height: 100dvh;
-      margin: 0;
-      padding: clamp(18px, 2.2vw, 40px);
+      width: min(100%, 1100px);
+      min-height: calc(100vh - 40px);
+      min-height: calc(100dvh - 40px);
+      margin: 0 auto;
+      padding: 28px;
       background: var(--bg);
       border: 0;
     }
@@ -237,7 +238,8 @@
     .toast.is-visible { display: block; }
     .toast.is-error { border-left-color: var(--danger); }
     @media (max-width: 720px) {
-      .app { padding: 18px 12px; }
+      body { padding: 0; background: var(--bg); }
+      .app { width: 100%; min-height: 100vh; min-height: 100dvh; padding: 18px 12px; }
       .header { align-items: flex-start; padding-inline: 4px; }
       .brand-image { width: min(260px, calc(100vw - 92px)); }
       .workbench { padding: 22px 16px; }
