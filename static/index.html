@@ -76,23 +76,23 @@
       gap: 16px;
     }
     .header { min-height: 66px; padding: 0 10px 18px; }
-    .brand { gap: 14px; min-width: 0; }
-    .brand-mark {
+    .brand { gap: 12px; min-width: 0; }
+    .brand-image {
+      display: block;
+      width: clamp(260px, 28vw, 330px);
+      max-width: 100%;
+      height: auto;
+    }
+    .brand-help {
       display: grid;
       place-items: center;
-      width: 46px;
-      height: 46px;
+      width: 24px;
+      height: 24px;
       flex: 0 0 auto;
-      color: #fff;
-      background: #5b66f6;
-      border: 1px solid #8790ff;
-      border-radius: 8px;
-      box-shadow: 0 0 18px rgba(91, 102, 246, 0.45);
+      color: var(--muted);
     }
-    .brand-mark svg { width: 26px; height: 26px; }
-    .brand-copy { gap: 14px; min-width: 0; }
-    .brand-name { font-size: 27px; font-weight: 700; white-space: nowrap; }
-    .brand-subtitle, .version, .muted { color: var(--muted); }
+    .brand-help svg { width: 22px; height: 22px; }
+    .version, .muted { color: var(--muted); }
     .version { font-size: 14px; }
     .card {
       background: var(--panel);
@@ -126,27 +126,19 @@
       padding: 34px;
       color: var(--text);
       text-align: center;
-      background: rgba(24, 25, 38, 0.72);
+      background: #1b1b27;
       border: 2px dashed #777486;
       border-radius: 8px;
       cursor: pointer;
     }
     .dropzone:hover, .dropzone.is-over { border-color: var(--primary); background: #1b1a2d; }
     .drop-content { display: grid; justify-items: center; gap: 14px; pointer-events: none; }
-    .drop-art {
-      display: grid;
-      place-items: center;
-      width: 84px;
-      height: 68px;
-      margin-bottom: 18px;
-      color: #fff;
-      background: var(--primary);
-      border: 1px solid #948dff;
-      border-radius: 8px;
-      box-shadow: -17px -11px 0 #4b38be;
-      transform: rotate(4deg);
+    .drop-visual {
+      display: block;
+      width: min(100%, 300px);
+      height: auto;
+      margin-bottom: 4px;
     }
-    .drop-art svg { width: 36px; height: 36px; transform: rotate(-4deg); }
     .drop-title { font-size: 19px; font-weight: 600; }
     .picker-actions { justify-content: center; margin-top: 30px; }
     .split-picker { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 500px); }
@@ -247,8 +239,7 @@
     @media (max-width: 720px) {
       .app { padding: 18px 12px; }
       .header { align-items: flex-start; padding-inline: 4px; }
-      .brand-copy { align-items: flex-start; flex-direction: column; gap: 2px; }
-      .brand-name { font-size: 22px; }
+      .brand-image { width: min(260px, calc(100vw - 92px)); }
       .workbench { padding: 22px 16px; }
       .setting-head { align-items: flex-start; flex-direction: column; }
       .dropzone { min-height: 260px; padding: 24px 12px; }
@@ -258,7 +249,7 @@
       .run-action, .save-action { width: 100%; }
     }
     @media (max-width: 440px) {
-      .brand-subtitle, .version { display: none; }
+      .version { display: none; }
       .split-picker { grid-template-columns: 1fr; gap: 8px; }
       .split-picker .btn, .split-picker .btn:first-child, .split-picker .btn:last-child { border: 1px solid var(--primary); border-radius: 8px; }
       .target-control { width: 100%; justify-content: space-between; }
@@ -269,11 +260,8 @@
   <main class="app">
     <header class="header">
       <div class="brand">
-        <span class="brand-mark"><i data-lucide="package-open" aria-hidden="true"></i></span>
-        <div class="brand-copy">
-          <span class="brand-name">小压子</span>
-          <span class="brand-subtitle">图片与参数整理</span>
-        </div>
+        <img class="brand-image" src="/static/vendor/xiao-yazi-brand.png" alt="小压子｜图片与参数整理">
+        <span class="brand-help" title="支持图片压缩和 TXT 参数检查" aria-label="使用说明"><i data-lucide="circle-help" aria-hidden="true"></i></span>
       </div>
       <span class="version">v1.0</span>
     </header>
@@ -292,7 +280,7 @@
 
       <button class="dropzone" id="dropzone" type="button" aria-label="选择或拖入文件和文件夹">
         <span class="drop-content">
-          <span class="drop-art"><i data-lucide="upload" aria-hidden="true"></i></span>
+          <img class="drop-visual" src="/static/vendor/upload-visual.png" alt="" aria-hidden="true">
           <span class="drop-title">把文件或文件夹拖到这里</span>
           <span class="muted">也可以粘贴剪贴板中的图片</span>
         </span>
