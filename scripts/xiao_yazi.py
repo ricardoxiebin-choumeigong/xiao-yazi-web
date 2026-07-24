@@ -12,7 +12,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Iterable
 
-from PIL import Image, ImageSequence, UnidentifiedImageError
+from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
@@ -73,7 +73,14 @@ def default_output(paths: list[Path], folder_input: bool) -> Path:
     return Path.cwd() / "小压子-处理结果"
 
 
-def encode_static(image: Image.Image, suffix: str, quality: int | None = None, colors: int | None = None) -> bytes:
+def encode_static(
+    image: Image.Image,
+    suffix: str,
+    quality: int | None = None,
+    colors: int | None = None,
+    compress_level: int = 9,
+    optimize: bool = True,
+) -> bytes:
     output = BytesIO()
     if suffix in {".jpg", ".jpeg"}:
         prepared = image if image.mode in {"RGB", "L"} else image.convert("RGB")
@@ -85,7 +92,7 @@ def encode_static(image: Image.Image, suffix: str, quality: int | None = None, c
         if colors:
             method = Image.Quantize.FASTOCTREE if "A" in image.getbands() else Image.Quantize.MEDIANCUT
             prepared = image.quantize(colors=colors, method=method)
-        prepared.save(output, "PNG", optimize=True, compress_level=9)
+        prepared.save(output, "PNG", optimize=optimize, compress_level=compress_level)
     return output.getvalue()
 
 
@@ -112,7 +119,7 @@ def encode_gif(image: Image.Image, colors: int) -> bytes:
     return output.getvalue()
 
 
-def choose_quality(image: Image.Image, suffix: str, target: int) -> bytes:
+def choose_quality(image: Image.Image, suffix: str, target: int) -> list[bytes]:
     candidates: list[bytes] = []
     low, high = 0, 96
     for _ in range(8):
@@ -125,23 +132,55 @@ def choose_quality(image: Image.Image, suffix: str, target: int) -> bytes:
             low = quality + 1
         else:
             high = quality - 1
-    candidates.append(encode_static(image, suffix, quality=0))
-    return pick_candidate(candidates, target)
+    candidates.extend([
+        encode_static(image, suffix, quality=0),
+        encode_static(image, suffix, quality=96),
+    ])
+    return candidates
 
 
-def choose_palette(image: Image.Image, suffix: str, target: int) -> bytes:
+def choose_palette(image: Image.Image, suffix: str) -> list[bytes]:
     colors = (256, 192, 128, 96, 64, 48, 32, 24, 16)
     if suffix == ".gif":
         candidates = [encode_gif(image, count) for count in colors]
     else:
         candidates = [encode_static(image, ".png", colors=count) for count in colors]
-    return pick_candidate(candidates, target)
+    return candidates
 
 
-def pick_candidate(candidates: Iterable[bytes], target: int) -> bytes:
+def posterize_png(image: Image.Image, bits: int, compress_level: int) -> bytes:
+    has_alpha = "A" in image.getbands() or "transparency" in image.info
+    if has_alpha:
+        rgba = image.convert("RGBA")
+        prepared = ImageOps.posterize(rgba.convert("RGB"), bits)
+        prepared.putalpha(rgba.getchannel("A"))
+    else:
+        prepared = ImageOps.posterize(image.convert("RGB"), bits)
+    return encode_static(prepared, ".png", compress_level=compress_level, optimize=False)
+
+
+def choose_png(image: Image.Image) -> list[bytes]:
+    candidates = [
+        encode_static(image, ".png", compress_level=level, optimize=False)
+        for level in (0, 1, 3, 6, 9)
+    ]
+    candidates.append(encode_static(image, ".png", compress_level=9, optimize=True))
+    candidates.extend(
+        posterize_png(image, bits, level)
+        for bits in (7, 6, 5, 4)
+        for level in (1, 6, 9)
+    )
+    candidates.extend(choose_palette(image, ".png"))
+    return candidates
+
+
+def pick_candidate(candidates: Iterable[bytes], target: int, maximum: int | None = None) -> bytes:
     values = list(candidates)
-    under = [value for value in values if len(value) <= target]
-    return max(under, key=len) if under else min(values, key=len)
+    if maximum is not None:
+        values = [value for value in values if len(value) <= maximum]
+    if not values:
+        raise ValueError("没有符合要求的压缩候选")
+    return min(values, key=lambda value: (abs(len(value) - target), len(value) > target, len(value)))
 
 
 def validate(data: bytes, expected_size: tuple[int, int], expected_frames: int, require_transparency: bool) -> None:
@@ -193,9 +232,16 @@ def process_image(
             target = max(512, round(len(original) * percent / 100))
             suffix = source.suffix.lower()
             if suffix in {".jpg", ".jpeg", ".webp"}:
-                candidate = choose_quality(image, suffix, target)
+                candidates = choose_quality(image, suffix, target)
+            elif suffix == ".png":
+                candidates = choose_png(image)
+            elif suffix == ".bmp":
+                candidates = choose_png(image)
             else:
-                candidate = choose_palette(image, suffix, target)
+                candidates = choose_palette(image, suffix)
+            if suffix != ".bmp":
+                candidates.append(original)
+            candidate = pick_candidate(candidates, target, len(original))
             validate(candidate, size, frames, require_transparency)
     except (OSError, ValueError, UnidentifiedImageError) as error:
         return ImageReport(str(source), "", len(original), len(original), 100.0, "failed", str(error))
