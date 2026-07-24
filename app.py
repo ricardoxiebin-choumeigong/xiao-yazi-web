@@ -69,7 +69,7 @@ def unique_staging_path(base: Path, relative: Path) -> Path:
 
 
 class XiaoYaziHandler(BaseHTTPRequestHandler):
-    server_version = "XiaoYaziLocal/1.0"
+    server_version = "XiaoYaziLocal/1.0.16"
 
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"[{self.log_date_time_string()}] {fmt % args}")
@@ -296,7 +296,7 @@ class XiaoYaziHandler(BaseHTTPRequestHandler):
 
             JOBS[job_id] = output_root
             response = {
-                "version": report.get("version", "1.0"),
+                "version": report.get("version", "1.0.16"),
                 "job_id": job_id,
                 "target_percent": target_percent,
                 "images": images,
