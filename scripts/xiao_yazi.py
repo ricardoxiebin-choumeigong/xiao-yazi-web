@@ -449,7 +449,7 @@ def main() -> int:
 
     text_reports = [] if args.images_only else [process_text(path) for path in texts]
     payload: dict[str, Any] = {
-        "version": "1.0",
+        "version": "1.0.16",
         "target_percent": args.target_percent,
         "output": str(output_root) if image_reports else "",
         "images": [asdict(report) for report in image_reports],
