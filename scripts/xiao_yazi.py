@@ -159,18 +159,39 @@ def posterize_png(image: Image.Image, bits: int, compress_level: int) -> bytes:
     return encode_static(prepared, ".png", compress_level=compress_level, optimize=False)
 
 
-def choose_png(image: Image.Image) -> list[bytes]:
+def choose_png(image: Image.Image, target: int) -> list[bytes]:
     candidates = [
         encode_static(image, ".png", compress_level=level, optimize=False)
-        for level in (0, 1, 3, 6, 9)
-    ]
-    candidates.append(encode_static(image, ".png", compress_level=9, optimize=True))
-    candidates.extend(
-        posterize_png(image, bits, level)
-        for bits in (7, 6, 5, 4)
         for level in (1, 6, 9)
-    )
-    candidates.extend(choose_palette(image, ".png"))
+    ]
+
+    posterized_under_target = False
+    for bits in (7, 6, 5, 4):
+        data = posterize_png(image, bits, 1)
+        candidates.append(data)
+        if len(data) <= target:
+            posterized_under_target = True
+            break
+
+    if not posterized_under_target:
+        for bits in (7, 6, 5, 4):
+            data = posterize_png(image, bits, 6)
+            candidates.append(data)
+            if len(data) <= target:
+                posterized_under_target = True
+                break
+
+    if not posterized_under_target and min(map(len, candidates)) > target:
+        previous_colors = 0
+        for colors in (256, 128, 64, 32, 16):
+            data = encode_static(image, ".png", colors=colors)
+            candidates.append(data)
+            if len(data) <= target:
+                if previous_colors:
+                    midpoint = (previous_colors + colors) // 2
+                    candidates.append(encode_static(image, ".png", colors=midpoint))
+                break
+            previous_colors = colors
     return candidates
 
 
@@ -234,9 +255,9 @@ def process_image(
             if suffix in {".jpg", ".jpeg", ".webp"}:
                 candidates = choose_quality(image, suffix, target)
             elif suffix == ".png":
-                candidates = choose_png(image)
+                candidates = choose_png(image, target)
             elif suffix == ".bmp":
-                candidates = choose_png(image)
+                candidates = choose_png(image, target)
             else:
                 candidates = choose_palette(image, suffix)
             if suffix != ".bmp":
