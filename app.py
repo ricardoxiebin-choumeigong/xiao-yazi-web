@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 import zipfile
@@ -28,6 +29,7 @@ APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
 SUPPORTED_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".txt"}
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 JOBS: dict[str, Path] = {}
+PROCESSING_SEMAPHORE = threading.BoundedSemaphore(1)
 
 
 def cleanup_old_jobs(max_age_seconds: int = 24 * 60 * 60) -> None:
@@ -69,7 +71,7 @@ def unique_staging_path(base: Path, relative: Path) -> Path:
 
 
 class XiaoYaziHandler(BaseHTTPRequestHandler):
-    server_version = "XiaoYaziLocal/1.0.16"
+    server_version = "XiaoYaziLocal/1.0.18"
 
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"[{self.log_date_time_string()}] {fmt % args}")
@@ -245,18 +247,22 @@ class XiaoYaziHandler(BaseHTTPRequestHandler):
             elif mode == "scan":
                 command.append("--scan-only")
 
-            completed = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=60 * 30,
-                check=False,
-            )
+            with PROCESSING_SEMAPHORE:
+                completed = subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=60 * 30,
+                    check=False,
+                )
             stdout = completed.stdout.strip()
             if not stdout:
-                raise ValueError(completed.stderr.strip() or "处理脚本没有返回结果")
+                detail = completed.stderr.strip()
+                if completed.returncode not in {0}:
+                    detail = detail or "大图处理进程被服务器中止，通常是临时内存不足，请稍后单独重试这张图片"
+                raise ValueError(detail or "处理脚本没有返回结果")
             try:
                 report = json.loads(stdout)
             except json.JSONDecodeError as error:
@@ -296,7 +302,7 @@ class XiaoYaziHandler(BaseHTTPRequestHandler):
 
             JOBS[job_id] = output_root
             response = {
-                "version": report.get("version", "1.0.16"),
+                "version": report.get("version", "1.0.18"),
                 "job_id": job_id,
                 "target_percent": target_percent,
                 "images": images,
