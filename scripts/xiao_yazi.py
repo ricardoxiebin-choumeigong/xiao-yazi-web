@@ -6,11 +6,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 
@@ -82,17 +83,21 @@ def encode_static(
     optimize: bool = True,
 ) -> bytes:
     output = BytesIO()
-    if suffix in {".jpg", ".jpeg"}:
-        prepared = image if image.mode in {"RGB", "L"} else image.convert("RGB")
-        prepared.save(output, "JPEG", quality=80 if quality is None else quality, optimize=True, progressive=True)
-    elif suffix == ".webp":
-        image.save(output, "WEBP", quality=80 if quality is None else quality, method=4, exact=True)
-    else:
-        prepared = image
-        if colors:
-            method = Image.Quantize.FASTOCTREE if "A" in image.getbands() else Image.Quantize.MEDIANCUT
-            prepared = image.quantize(colors=colors, method=method)
-        prepared.save(output, "PNG", optimize=optimize, compress_level=compress_level)
+    prepared = image
+    try:
+        if suffix in {".jpg", ".jpeg"}:
+            prepared = image if image.mode in {"RGB", "L"} else image.convert("RGB")
+            prepared.save(output, "JPEG", quality=80 if quality is None else quality, optimize=True, progressive=True)
+        elif suffix == ".webp":
+            image.save(output, "WEBP", quality=80 if quality is None else quality, method=4, exact=True)
+        else:
+            if colors:
+                method = Image.Quantize.FASTOCTREE if "A" in image.getbands() else Image.Quantize.MEDIANCUT
+                prepared = image.quantize(colors=colors, method=method)
+            prepared.save(output, "PNG", optimize=optimize, compress_level=compress_level)
+    finally:
+        if prepared is not image:
+            prepared.close()
     return output.getvalue()
 
 
@@ -102,101 +107,140 @@ def encode_gif(image: Image.Image, colors: int) -> bytes:
     disposals: list[int] = []
     for frame in ImageSequence.Iterator(image):
         rgba = frame.convert("RGBA")
-        frames.append(rgba.quantize(colors=colors, method=Image.Quantize.FASTOCTREE))
+        try:
+            frames.append(rgba.quantize(colors=colors, method=Image.Quantize.FASTOCTREE))
+        finally:
+            rgba.close()
         durations.append(int(frame.info.get("duration", image.info.get("duration", 0))))
         disposals.append(int(getattr(frame, "disposal_method", 0)))
     output = BytesIO()
-    frames[0].save(
-        output,
-        "GIF",
-        save_all=len(frames) > 1,
-        append_images=frames[1:],
-        optimize=True,
-        loop=int(image.info.get("loop", 0)),
-        duration=durations,
-        disposal=disposals,
-    )
+    try:
+        frames[0].save(
+            output,
+            "GIF",
+            save_all=len(frames) > 1,
+            append_images=frames[1:],
+            optimize=True,
+            loop=int(image.info.get("loop", 0)),
+            duration=durations,
+            disposal=disposals,
+        )
+    finally:
+        for frame in frames:
+            frame.close()
     return output.getvalue()
 
 
-def choose_quality(image: Image.Image, suffix: str, target: int) -> list[bytes]:
-    candidates: list[bytes] = []
+class CandidatePicker:
+    def __init__(self, target: int, maximum: int) -> None:
+        self.target = target
+        self.maximum = maximum
+        self.best: bytes | None = None
+        self.best_score: tuple[int, bool, int] | None = None
+
+    def consider(self, data: bytes) -> int:
+        size = len(data)
+        if size <= self.maximum:
+            score = (abs(size - self.target), size > self.target, size)
+            if self.best_score is None or score < self.best_score:
+                self.best = data
+                self.best_score = score
+        return size
+
+
+def choose_quality(image: Image.Image, suffix: str, target: int, picker: CandidatePicker) -> None:
     low, high = 0, 96
     for _ in range(8):
         if low > high:
             break
         quality = (low + high) // 2
         data = encode_static(image, suffix, quality=quality)
-        candidates.append(data)
-        if len(data) <= target:
+        size = picker.consider(data)
+        if size <= target:
             low = quality + 1
         else:
             high = quality - 1
-    candidates.extend([
-        encode_static(image, suffix, quality=0),
-        encode_static(image, suffix, quality=96),
-    ])
-    return candidates
+    picker.consider(encode_static(image, suffix, quality=0))
+    picker.consider(encode_static(image, suffix, quality=96))
 
 
-def choose_palette(image: Image.Image, suffix: str) -> list[bytes]:
+def choose_palette(image: Image.Image, suffix: str, picker: CandidatePicker) -> None:
     colors = (256, 192, 128, 96, 64, 48, 32, 24, 16)
-    if suffix == ".gif":
-        candidates = [encode_gif(image, count) for count in colors]
-    else:
-        candidates = [encode_static(image, ".png", colors=count) for count in colors]
-    return candidates
+    for count in colors:
+        data = encode_gif(image, count) if suffix == ".gif" else encode_static(image, ".png", colors=count)
+        picker.consider(data)
 
 
 def posterize_png(image: Image.Image, bits: int, compress_level: int) -> bytes:
     has_alpha = "A" in image.getbands() or "transparency" in image.info
+    rgb = image.convert("RGB")
+    prepared: Image.Image | None = None
+    alpha: Image.Image | None = None
     if has_alpha:
-        rgba = image.convert("RGBA")
-        prepared = ImageOps.posterize(rgba.convert("RGB"), bits)
-        prepared.putalpha(rgba.getchannel("A"))
+        prepared = ImageOps.posterize(rgb, bits)
+        if "A" in image.getbands():
+            alpha = image.getchannel("A")
+        else:
+            rgba = image.convert("RGBA")
+            try:
+                alpha = rgba.getchannel("A")
+            finally:
+                rgba.close()
+        prepared.putalpha(alpha)
     else:
-        prepared = ImageOps.posterize(image.convert("RGB"), bits)
-    return encode_static(prepared, ".png", compress_level=compress_level, optimize=False)
+        prepared = ImageOps.posterize(rgb, bits)
+    try:
+        return encode_static(prepared, ".png", compress_level=compress_level, optimize=False)
+    finally:
+        rgb.close()
+        prepared.close()
+        if alpha is not None:
+            alpha.close()
 
 
-def choose_png(image: Image.Image, target: int) -> list[bytes]:
-    candidates = [
-        encode_static(image, ".png", compress_level=level, optimize=False)
-        for level in (1, 6, 9)
-    ]
-    posterized: dict[tuple[int, int], bytes] = {}
+def choose_png(image: Image.Image, target: int, picker: CandidatePicker) -> None:
+    large_image = image.width * image.height >= 16_000_000
+    if large_image:
+        # For large PNGs, the source itself is the lossless baseline. Re-encoding it
+        # several times has a high memory/CPU cost and rarely helps below 85%.
+        lossless_levels = (9,) if target >= picker.maximum * 0.85 else ()
+    else:
+        lossless_levels = (1, 6, 9)
+    for level in lossless_levels:
+        picker.consider(encode_static(image, ".png", compress_level=level, optimize=False))
+    posterized: dict[tuple[int, int], int] = {}
 
-    def add_posterized(bits: int, compress_level: int) -> bytes:
+    def add_posterized(bits: int, compress_level: int) -> int:
         key = (bits, compress_level)
         if key not in posterized:
-            posterized[key] = posterize_png(image, bits, compress_level)
-            candidates.append(posterized[key])
+            posterized[key] = picker.consider(posterize_png(image, bits, compress_level))
         return posterized[key]
 
     def refine_posterized(bits: int) -> None:
         low, high = 1, 9
         while low <= high:
             level = (low + high) // 2
-            data = add_posterized(bits, level)
-            if len(data) > target:
+            size = add_posterized(bits, level)
+            if size > target:
                 low = level + 1
             else:
                 high = level - 1
-        for level in range(max(1, high - 1), min(9, low + 1) + 1):
+        levels = (1, 6, 9) if large_image else range(max(1, high - 1), min(9, low + 1) + 1)
+        for level in levels:
             add_posterized(bits, level)
 
     posterized_under_target = False
     for bits in (7, 6, 5, 4):
-        data = add_posterized(bits, 1)
-        if len(data) <= target:
+        size = add_posterized(bits, 1)
+        if size <= target:
             posterized_under_target = True
             break
 
     if not posterized_under_target:
         previous_bits: int | None = None
         for bits in (7, 6, 5, 4, 3, 2, 1):
-            data = add_posterized(bits, 6)
-            if len(data) <= target:
+            size = add_posterized(bits, 6)
+            if size <= target:
                 posterized_under_target = True
                 refine_posterized(bits)
                 if previous_bits is not None:
@@ -204,27 +248,17 @@ def choose_png(image: Image.Image, target: int) -> list[bytes]:
                 break
             previous_bits = bits
 
-    if not posterized_under_target and min(map(len, candidates)) > target:
+    if not posterized_under_target and (picker.best is None or len(picker.best) > target):
         previous_colors = 0
         for colors in (256, 128, 64, 32, 16):
             data = encode_static(image, ".png", colors=colors)
-            candidates.append(data)
-            if len(data) <= target:
+            size = picker.consider(data)
+            if size <= target:
                 if previous_colors:
                     midpoint = (previous_colors + colors) // 2
-                    candidates.append(encode_static(image, ".png", colors=midpoint))
+                    picker.consider(encode_static(image, ".png", colors=midpoint))
                 break
             previous_colors = colors
-    return candidates
-
-
-def pick_candidate(candidates: Iterable[bytes], target: int, maximum: int | None = None) -> bytes:
-    values = list(candidates)
-    if maximum is not None:
-        values = [value for value in values if len(value) <= maximum]
-    if not values:
-        raise ValueError("没有符合要求的压缩候选")
-    return min(values, key=lambda value: (abs(len(value) - target), len(value) > target, len(value)))
 
 
 def validate(data: bytes, expected_size: tuple[int, int], expected_frames: int, require_transparency: bool) -> None:
@@ -235,8 +269,13 @@ def validate(data: bytes, expected_size: tuple[int, int], expected_frames: int, 
         if getattr(check, "n_frames", 1) != expected_frames:
             raise ValueError("GIF 动画帧数发生变化")
         if require_transparency and check.format != "GIF":
-            alpha = check.convert("RGBA").getchannel("A")
-            if alpha.getextrema()[0] == 255:
+            if "A" in check.getbands():
+                alpha_min = check.getchannel("A").getextrema()[0]
+            elif "transparency" in check.info:
+                alpha_min = 0
+            else:
+                alpha_min = 255
+            if alpha_min == 255:
                 raise ValueError("透明像素丢失")
 
 
@@ -261,51 +300,59 @@ def process_image(
     percent: int,
     exact_output: bool = False,
 ) -> ImageReport:
-    original = source.read_bytes()
+    original_bytes = source.stat().st_size
     destination = output_root if exact_output else unique_output(output_root, relative, source.suffix.lower())
     if source.suffix.lower() == ".bmp":
         destination = destination.with_suffix(".png")
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with Image.open(BytesIO(original)) as image:
+        with Image.open(source) as image:
             image.load()
             size = image.size
             frames = getattr(image, "n_frames", 1)
-            alpha = image.convert("RGBA").getchannel("A")
-            require_transparency = alpha.getextrema()[0] < 255
-            target = max(512, round(len(original) * percent / 100))
-            suffix = source.suffix.lower()
-            if suffix in {".jpg", ".jpeg", ".webp"}:
-                candidates = choose_quality(image, suffix, target)
-            elif suffix == ".png":
-                candidates = choose_png(image, target)
-            elif suffix == ".bmp":
-                candidates = choose_png(image, target)
+            if "A" in image.getbands():
+                require_transparency = image.getchannel("A").getextrema()[0] < 255
             else:
-                candidates = choose_palette(image, suffix)
-            if suffix != ".bmp":
-                candidates.append(original)
-            candidate = pick_candidate(candidates, target, len(original))
-            validate(candidate, size, frames, require_transparency)
+                require_transparency = "transparency" in image.info
+            target = max(512, round(original_bytes * percent / 100))
+            suffix = source.suffix.lower()
+            picker = CandidatePicker(target, original_bytes)
+            if suffix in {".jpg", ".jpeg", ".webp"}:
+                choose_quality(image, suffix, target, picker)
+            elif suffix == ".png":
+                choose_png(image, target, picker)
+            elif suffix == ".bmp":
+                choose_png(image, target, picker)
+            else:
+                choose_palette(image, suffix, picker)
+            candidate = picker.best
+            original_score = (abs(original_bytes - target), original_bytes > target, original_bytes)
+            keep_original = suffix != ".bmp" and (picker.best_score is None or original_score <= picker.best_score)
+            if not keep_original:
+                if candidate is None:
+                    raise ValueError("没有符合要求的压缩候选")
+                validate(candidate, size, frames, require_transparency)
     except (OSError, ValueError, UnidentifiedImageError) as error:
-        return ImageReport(str(source), "", len(original), len(original), 100.0, "failed", str(error))
+        return ImageReport(str(source), "", original_bytes, original_bytes, 100.0, "failed", str(error))
 
-    if len(candidate) >= len(original):
-        candidate = original
+    if keep_original:
         if source.suffix.lower() == ".bmp":
             destination = destination.with_suffix(".bmp")
         status = "kept-original"
         detail = "压缩候选未变小，输出原图副本"
+        shutil.copyfile(source, destination)
+        output_bytes = original_bytes
     else:
         status = "compressed"
         detail = ""
-    destination.write_bytes(candidate)
+        destination.write_bytes(candidate)
+        output_bytes = len(candidate)
     return ImageReport(
         str(source),
         str(destination),
-        len(original),
-        len(candidate),
-        round(len(candidate) / len(original) * 100, 1) if original else 0.0,
+        original_bytes,
+        output_bytes,
+        round(output_bytes / original_bytes * 100, 1) if original_bytes else 0.0,
         status,
         detail,
     )
@@ -449,7 +496,7 @@ def main() -> int:
 
     text_reports = [] if args.images_only else [process_text(path) for path in texts]
     payload: dict[str, Any] = {
-        "version": "1.0.16",
+        "version": "1.0.18",
         "target_percent": args.target_percent,
         "output": str(output_root) if image_reports else "",
         "images": [asdict(report) for report in image_reports],
