@@ -134,6 +134,40 @@
     }
     .dropzone:hover, .dropzone.is-over { border-color: var(--primary); background: #1b1a2d; }
     .drop-content { display: grid; justify-items: center; gap: 14px; pointer-events: none; }
+    .drop-ready { display: none; justify-items: center; gap: 12px; pointer-events: none; }
+    .dropzone.is-ready { border-color: #6f67bf; background: #1b1a2d; }
+    .dropzone.is-ready .drop-content { display: none; }
+    .dropzone.is-ready .drop-ready { display: grid; }
+    .preview-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 176px;
+      height: 132px;
+      overflow: hidden;
+      background-color: #232232;
+      background-image: linear-gradient(45deg, #2b2a3a 25%, transparent 25%), linear-gradient(-45deg, #2b2a3a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2b2a3a 75%), linear-gradient(-45deg, transparent 75%, #2b2a3a 75%);
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-size: 16px 16px;
+      border: 1px solid #4a4564;
+      border-radius: 8px;
+    }
+    .upload-preview { width: 100%; height: 100%; object-fit: contain; }
+    .preview-fallback { width: 44px; height: 44px; color: var(--primary); }
+    .preview-check {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      color: #fff;
+      background: var(--success);
+      border: 2px solid #232232;
+      border-radius: 50%;
+    }
+    .preview-check svg { width: 16px; height: 16px; }
     .drop-visual {
       display: block;
       width: min(100%, 176px);
@@ -265,7 +299,7 @@
         <img class="brand-image" src="/static/vendor/xiao-yazi-brand.png" alt="小压子｜图片与参数整理">
         <span class="brand-help" title="支持图片压缩和 TXT 参数检查" aria-label="使用说明"><i data-lucide="circle-help" aria-hidden="true"></i></span>
       </div>
-      <span class="version">v1.0.16</span>
+      <span class="version">v1.0.18</span>
     </header>
 
     <section class="card workbench" aria-label="图片压缩设置">
@@ -285,6 +319,15 @@
           <img class="drop-visual" src="/static/vendor/upload-visual.png" alt="" aria-hidden="true">
           <span class="drop-title">把文件或文件夹拖到这里</span>
           <span class="muted">也可以粘贴剪贴板中的图片</span>
+        </span>
+        <span class="drop-ready" aria-live="polite">
+          <span class="preview-wrap">
+            <img class="upload-preview" id="upload-preview" alt="已添加图片预览">
+            <i class="preview-fallback" id="preview-fallback" data-lucide="files" aria-hidden="true"></i>
+            <span class="preview-check"><i data-lucide="check" aria-hidden="true"></i></span>
+          </span>
+          <span class="drop-title">文件已添加</span>
+          <span class="muted" id="upload-ready-meta"></span>
         </span>
       </button>
 
@@ -340,7 +383,7 @@
   <script>
     (() => {
       const supported = /\.(png|jpe?g|webp|bmp|gif|txt)$/i;
-      const state = { files: new Map(), running: false, report: null };
+      const state = { files: new Map(), running: false, report: null, previewFile: null, previewUrl: '' };
       const $ = (selector) => document.querySelector(selector);
       const dropzone = $('#dropzone');
       const fileInput = $('#file-input');
@@ -401,6 +444,7 @@
 
       function renderQueue() {
         const items = [...state.files.values()];
+        renderUploadState(items);
         $('#queue-title').textContent = items.length ? `待处理 · ${items.length} 个文件` : '待处理';
         $('#choose-files-label').textContent = items.length ? '重新选择文件' : '选择文件';
         $('#choose-folder-label').textContent = items.length ? '重新选择文件夹' : '选择文件夹';
@@ -421,6 +465,24 @@
           </div>`;
         }).join('');
         refreshIcons();
+      }
+
+      function renderUploadState(items) {
+        const previewFile = items.find((item) => !/\.txt$/i.test(item.file.name))?.file || null;
+        if (previewFile !== state.previewFile) {
+          if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+          state.previewFile = previewFile;
+          state.previewUrl = previewFile ? URL.createObjectURL(previewFile) : '';
+        }
+        dropzone.classList.toggle('is-ready', items.length > 0);
+        const preview = $('#upload-preview');
+        const fallback = $('#preview-fallback');
+        preview.src = state.previewUrl;
+        preview.style.display = state.previewUrl ? '' : 'none';
+        fallback.style.display = state.previewUrl ? 'none' : '';
+        $('#upload-ready-meta').textContent = items.length
+          ? `已添加 ${items.length} 个文件 · 点击可重新选择`
+          : '';
       }
 
       function setStatus(path, status, tone = '') {
@@ -493,7 +555,15 @@
           progressFill.style.width = '38%';
           $('#run-hint').textContent = '正在压缩图片并检查 TXT…';
           const response = await fetch('/api/process', { method: 'POST', body: data });
-          const report = await response.json();
+          const body = await response.text();
+          let report;
+          try {
+            report = JSON.parse(body);
+          } catch (_) {
+            throw new Error(response.status >= 500
+              ? '服务器处理大图时暂时不可用，请稍后只选择失败的图片重试'
+              : '服务器返回了无法识别的处理结果');
+          }
           if (!response.ok || report.error) throw new Error(report.error || '处理失败');
           state.report = report;
           progressFill.style.width = '100%';
